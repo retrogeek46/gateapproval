@@ -1,0 +1,5 @@
+{
+    "JWT_SECRET_KEY": "ySDYVGfgwDK67uRnZPeSv70sjgOmyeoVFdK7slbiUYYZ24zoqrNghhi3Zbree7nN",
+    "DB_CONN_STR": "sqlite:///E:/Coding/Python/GateApprovalServer/db.db",
+    "FILE_PATH": "E:/Coding/Python/GateApprovalServer/VISITOR_FILES"
+}
