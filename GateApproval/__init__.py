@@ -1,5 +1,5 @@
 import os
-from flask import Flask
+from flask import Flask, send_from_directory
 # from dotenv import load_dotenv, find_dotenv
 # from decouple import config
 from flask_cors import CORS
@@ -43,12 +43,17 @@ def create_app(test_config=None):
     logger.init_app()
     # logger.error(config('FLASK_SECRET_KEY'))
 
-    from . import api
+    from . import api, utils
     app.register_blueprint(api.bp)
 
-    @app.route('/')
+    @app.route('/static')
     def index():
+        print('abc')
         return 'Hello'
+    
+    @app.route('/images/<path:path>')
+    def send_image(path):
+        return send_from_directory(utils.get_config_value('FILE_PATH'), path)
 
     @app.teardown_appcontext
     def shutdown_session(exception=None):

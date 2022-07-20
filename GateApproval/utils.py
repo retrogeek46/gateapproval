@@ -59,7 +59,12 @@ def compare_faces_deepface(document, visitor):
     verify_result = DeepFace.verify(document, visitor)
     return verify_result
 
-    
+
+def get_verifier_id_from_headers(headers):
+    token = headers.get('Authorization').split(' ')[1]
+    data = jwt.decode(token, get_config_value(
+                'JWT_SECRET_KEY'), algorithms=["HS256"])
+    return data['id']
 
 # def compare_faces_face_recognition(document, visitor):
 #     document = 

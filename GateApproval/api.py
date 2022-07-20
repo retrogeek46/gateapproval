@@ -1,7 +1,8 @@
 import base64
 from time import time
 import bcrypt
-from flask import Blueprint, request
+from cv2 import split
+from flask import Blueprint, request, send_from_directory, url_for
 from flask_cors import cross_origin
 from datetime import datetime, timedelta
 import json
@@ -13,7 +14,7 @@ from pprint import pprint
 import traceback
 from . import logger, db, utils
 from .db import db_session
-from .models import User
+from .models import User, Visitor
 
 
 bp = Blueprint('api', __name__, url_prefix='/api')
@@ -36,12 +37,8 @@ def token_required(f):
             if not token:
                 return {'message': 'Token is missing!'}, 403
             # logger.error(config('FLASK_SECRET_KEY'))
-            data = jwt.decode(token, utils.get_config_value(
+            jwt.decode(token, utils.get_config_value(
                 'JWT_SECRET_KEY'), algorithms=["HS256"])
-            if request.json is None:
-                request.data = {}
-            request.json['clientID'] = data['clientID']
-            request.json['userID'] = data['userID']
         except Exception as e:
             logger.error(traceback.format_exc())
             return {'message': 'Token is invalid!'}, 403
@@ -74,9 +71,11 @@ def login():
         logger.error(traceback.format_exc())
         return {'message': 'Could not process request due to error in server'}, 500
 
-@bp.route('/verify_visitor', methods=['POST'])
+
+@bp.route('/add_visitor', methods=['POST'])
 @cross_origin()
-def verify_visitor():
+@token_required
+def add_visitor():
     """
     This api logs in user based on loginID and password
 
@@ -85,28 +84,79 @@ def verify_visitor():
     """
     try:
         name = request.form['name']
+        verifier_id = utils.get_verifier_id_from_headers(request.headers)
         document_file = request.files['document']
         visitor_file = request.files['visitor']
         
         document_path, visitor_path = utils.save_visitor_files(name, document_file, visitor_file)
 
-        verify_result = utils.compare_faces_deepface(document_path, visitor_path)
-        return {'message': 'Verified' if verify_result['verified'] else 'Unverified'}
+        verify_result = utils.compare_faces_deepface(document_path, visitor_path)['verified']
+        
+        print(name, verifier_id, False, verify_result, document_path, visitor_path)
+        
+        visitor = Visitor(name, verifier_id, False, verify_result, document_path, visitor_path)
+        db_session.add(visitor)
+        db_session.commit()
+        
+        return {'message': 'Visitor Added'}
     except Exception as e:
         logger.error(traceback.format_exc())
         return {'message': 'Could not process request due to error in server'}, 500
 
 
-@bp.route('/test_api', methods=['POST'])
+@bp.route('/get_visitors', methods=['GET'])
 @cross_origin()
-# @token_required
-def test_api():
-    return "Hello World"
+@token_required
+def get_visitors():
+    """
+    This api logs in user based on loginID and password
+
+    Returns:
+        response: Client details and jwt upon successful login
+    """
+    try:
+        visitors = Visitor.query.filter(Visitor.approval_status == 0)
+        visitors_response = []
+        for visitor in visitors:
+            visitors_response.append({
+                'id': visitor.id,
+                'name': visitor.name,
+                'verification_status': visitor.verification_status,
+                'document': utils.get_config_value('SERVER_URL') + '/images/' + visitor.document_img_path.split('/')[-1],
+                'visitor': utils.get_config_value('SERVER_URL') + '/images/' + visitor.visitor_img_path.split('/')[-1]
+            })
+        print(visitors_response)
+        return {'message': visitors_response}
+    except Exception as e:
+        logger.error(traceback.format_exc())
+        return {'message': 'Could not process request due to error in server'}, 500
+
+
+@bp.route('/approve_visitors', methods=['POST'])
+@cross_origin()
+@token_required
+def approve_visitors():
+    """
+    This api logs in user based on loginID and password
+
+    Returns:
+        response: Client details and jwt upon successful login
+    """
+    try:
+        visitors = request.json["visitors"]
+        status = request.json["status"]
+        print(visitors)
+        visitor_update = Visitor.query.filter(Visitor.id.in_(visitors)).update(dict(approval_status=status))
+        db_session.commit()
+        
+        return {'message': '{} visitor(s) {}'.format(visitor_update, 'approved' if status else 'rejected')}
+    except Exception as e:
+        logger.error(traceback.format_exc())
+        return {'message': 'Could not process request due to error in server'}, 500
 
 
 @bp.route('/create_user', methods=['POST'])
 @cross_origin()
-# @token_required
 def create_user():
     try:
         name = request.json["name"]
@@ -116,25 +166,29 @@ def create_user():
         
         hashed_pass = utils.create_hashed_password(password)
         
-        u = User(name, email, role, hashed_pass)
-        db_session.add(u)
+        user = User(name, email, role, hashed_pass)
+        db_session.add(user)
         db_session.commit()
         
-        return "User {} created".format(name)
+        return {'message': 'User {} created'.format(name)}
     except:
         return "Error: {}".format(traceback.format_exc())
 
 
-@bp.route('/get_users', methods=['POST'])
+@bp.route('/get_users', methods=['GET'])
 @cross_origin()
-# @token_required
+@token_required
 def get_users():
     try:
         users = User.query.all()
         users_response = []
         for user in users:
-            users_response.append({'id': user.id, 'name': user.name, 'email': user.email})
-        print(users_response)
+            users_response.append({
+                'id': user.id,
+                'name': user.name,
+                'email': user.email,
+                'role': user.role
+            })
         return {'message':users_response}
     except:
         return "Error: {}".format(traceback.format_exc())
@@ -143,8 +197,15 @@ def get_users():
 # TODO: remove in prod
 @bp.route('/clear_db', methods=['POST'])
 @cross_origin()
-# @token_required
+@token_required
 def clear_db():
     db.clear_db()
     return "DB Cleared"
+
+
+@bp.route('/test_api', methods=['POST'])
+@cross_origin()
+# @token_required
+def test_api():
+    return "Hello World"
 
