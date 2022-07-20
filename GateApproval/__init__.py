@@ -46,7 +46,7 @@ def create_app(test_config=None):
     from . import api, utils
     app.register_blueprint(api.bp)
 
-    @app.route('/static')
+    @app.route('/')
     def index():
         print('abc')
         return 'Hello'

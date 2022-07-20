@@ -17,7 +17,6 @@ Flask==2.1.3
 Flask-Cors==3.0.10
 flatbuffers==1.12
 gast==0.4.0
--e git+https://git.heroku.com/hidden-ridge-69547.git@1b257966b1c44e654334020aae87b6a41276ae53#egg=GateApproval
 gdown==4.5.1
 google-auth==2.9.1
 google-auth-oauthlib==0.4.6
