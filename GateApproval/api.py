@@ -22,13 +22,13 @@ bp = Blueprint('api', __name__, url_prefix='/api')
 
 def token_required(f):
     """
-    This method acts as a middleware and validates + extracts data from the jwt
+    This method acts as a middleware and validates data from the jwt
 
     Args:
         f (request): The request object
 
     Returns:
-        object: The request object with modifications
+        object: The request object
     """
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -53,7 +53,7 @@ def login():
     This api logs in user based on loginID and password
 
     Returns:
-        response: Client details and jwt upon successful login
+        response: User details and jwt upon successful login
     """
     result = ''
     try:
@@ -77,13 +77,14 @@ def login():
 @token_required
 def add_visitor():
     """
-    This api logs in user based on loginID and password
+    This api adds visitor details
 
     Returns:
         response: Client details and jwt upon successful login
     """
     try:
         name = request.form['name']
+        remarks = request.form['remarks']
         verifier_id = utils.get_verifier_id_from_headers(request.headers)
         document_file = request.files['document']
         visitor_file = request.files['visitor']
@@ -92,9 +93,9 @@ def add_visitor():
 
         verify_result = utils.compare_faces_deepface(document_path, visitor_path)['verified']
         
-        print(name, verifier_id, False, verify_result, document_path, visitor_path)
+        # logger.info(name, verifier_id, False, verify_result, document_path, visitor_path)
         
-        visitor = Visitor(name, verifier_id, False, verify_result, document_path, visitor_path)
+        visitor = Visitor(name, remarks, verifier_id, False, verify_result, document_path, visitor_path)
         db_session.add(visitor)
         db_session.commit()
         
@@ -104,10 +105,10 @@ def add_visitor():
         return {'message': 'Could not process request due to error in server'}, 500
 
 
-@bp.route('/get_visitors', methods=['GET'])
+@bp.route('/get_all_visitors', methods=['GET'])
 @cross_origin()
 @token_required
-def get_visitors():
+def get_all_visitors():
     """
     This api logs in user based on loginID and password
 
@@ -121,11 +122,42 @@ def get_visitors():
             visitors_response.append({
                 'id': visitor.id,
                 'name': visitor.name,
+                'remarks': visitor.remarks,
+                'verification_status': visitor.verification_status,
+                'approval_status': visitor.approval_status,
+                'document': utils.get_config_value('SERVER_URL') + '/images/' + visitor.document_img_path.split('/')[-1],
+                'visitor': utils.get_config_value('SERVER_URL') + '/images/' + visitor.visitor_img_path.split('/')[-1]
+            })
+        logger.info(visitors_response)
+        return {'message': visitors_response}
+    except Exception as e:
+        logger.error(traceback.format_exc())
+        return {'message': 'Could not process request due to error in server'}, 500
+
+
+@bp.route('/get_unapproved_visitors', methods=['GET'])
+@cross_origin()
+@token_required
+def get_unapproved_visitors():
+    """
+    This api logs in user based on loginID and password
+
+    Returns:
+        response: Client details and jwt upon successful login
+    """
+    try:
+        visitors = Visitor.query.filter(Visitor.approval_status == 0)
+        visitors_response = []
+        for visitor in visitors:
+            visitors_response.append({
+                'id': visitor.id,
+                'name': visitor.name,
+                'remarks': visitor.remarks,
                 'verification_status': visitor.verification_status,
                 'document': utils.get_config_value('SERVER_URL') + '/images/' + visitor.document_img_path.split('/')[-1],
                 'visitor': utils.get_config_value('SERVER_URL') + '/images/' + visitor.visitor_img_path.split('/')[-1]
             })
-        print(visitors_response)
+        logger.info(visitors_response)
         return {'message': visitors_response}
     except Exception as e:
         logger.error(traceback.format_exc())
@@ -145,7 +177,7 @@ def approve_visitors():
     try:
         visitors = request.json["visitors"]
         status = request.json["status"]
-        print(visitors)
+        logger.info(visitors)
         visitor_update = Visitor.query.filter(Visitor.id.in_(visitors)).update(dict(approval_status=status))
         db_session.commit()
         
@@ -195,17 +227,16 @@ def get_users():
         
 
 # TODO: remove in prod
-@bp.route('/clear_db', methods=['POST'])
+@bp.route('/clear_db', methods=['GET'])
 @cross_origin()
 @token_required
 def clear_db():
     db.clear_db()
-    return "DB Cleared"
+    return {'message': 'DB Cleared'}
 
 
-@bp.route('/test_api', methods=['POST'])
+@bp.route('/test_api', methods=['GET'])
 @cross_origin()
-# @token_required
 def test_api():
     return "Hello World"
 

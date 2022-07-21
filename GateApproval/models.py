@@ -25,13 +25,15 @@ class Visitor(Base):
     id = Column(Integer, primary_key=True)
     verifier_id = Column(Integer, ForeignKey('users.id'))
     name = Column(String(50))
+    remarks = Column(String(500))
     approval_status = Column(Integer)
     verification_status = Column(Integer)
     document_img_path = Column(String(500))
     visitor_img_path = Column(String(500))
     
-    def __init__(self, name=None, verifier_id=None, approval_status=None, verification_status=None, document_img_path=None, visitor_img_path=None):
+    def __init__(self, name=None, remarks=None, verifier_id=None, approval_status=None, verification_status=None, document_img_path=None, visitor_img_path=None):
         self.name = name
+        self.remarks = remarks
         self.verifier_id = verifier_id
         self.approval_status = approval_status
         self.verification_status = verification_status
