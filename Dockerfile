@@ -15,13 +15,12 @@ RUN apt-get install ffmpeg libsm6 libxext6  -y
 # copy project
 COPY . .
 RUN pip install --upgrade pip
-# RUN pip install https://storage.googleapis.com/tensorflow/mac/cpu/tensorflow-1.9.0-py3-none-any.whl
-RUN pip install -e .
+RUN pip install -r requirements.txt
+# RUN pip install -e .
 
 # install dependencies
 # COPY ./requirements.txt .
-# RUN pip install -r requirements.txt
 
 EXPOSE 9060
 
-RUN bash deploy.sh 9060
+CMD gunicorn --bind 0.0.0.0:9060 "GateApproval:create_app()"

@@ -1,1 +1,1 @@
-web: gunicorn app:app
+web: gunicorn "GateApproval:create_app()" 0.0.0.0:$PORT

@@ -1,0 +1,12 @@
+version: "3.9"
+services:
+  gateapproval-server:
+    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: bash deploy.sh 9060
+    environment: 
+      PYTHONPATH: .
+    ports:
+      - "9060:9060"
