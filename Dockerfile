@@ -21,6 +21,6 @@ RUN pip install -r requirements.txt
 # install dependencies
 # COPY ./requirements.txt .
 
-EXPOSE 9060
+EXPOSE $PORT
 
-CMD gunicorn --bind 0.0.0.0:9060 "GateApproval:create_app()"
+CMD gunicorn --bind 0.0.0.0:$PORT "GateApproval:create_app()"
