@@ -15,12 +15,13 @@ RUN apk update \
     && apk add postgresql-dev \
     && pip install psycopg2
 
-# install dependencies
-COPY ./requirements.txt .
-RUN pip install -r requirements.txt
-
 # copy project
 COPY . .
+RUN pip install -e .
+
+# install dependencies
+COPY ./requirements.txt .
+# RUN pip install -r requirements.txt
 
 # add and run as non-root user
 RUN adduser -D myuser
