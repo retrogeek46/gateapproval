@@ -14,6 +14,14 @@ This is the backend server for Gater Approval app
     Linux : `source venv/bin/activate`
 3. Install necessary libraries and dependencies by running  
     `pip install -e .`
+4. Add `config.json` at root level with following values
+
+       {
+           "JWT_SECRET_KEY": <64 digits random string>,
+           "DB_CONN_STR": <connection string for sqlite db>,
+           "FILE_PATH": <path where files are stored>,
+           "SERVER_URL": <image server url>
+       }
 
 ## Run
 - Run and test server on localhost  
@@ -59,3 +67,7 @@ This is the backend server for Gater Approval app
 
 ## Deploy
 - Coming Soon
+
+## TODO
+- add google drive api to store images
+- deploy app on heroku using docker

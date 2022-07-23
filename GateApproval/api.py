@@ -85,7 +85,7 @@ def add_visitor():
     try:
         name = request.form['name']
         remarks = request.form['remarks']
-        verifier_id = utils.get_verifier_id_from_headers(request.headers)
+        verifier_id = utils.get_verifier_id_from_jwt(request.headers)
         document_file = request.files['document']
         visitor_file = request.files['visitor']
         
@@ -116,7 +116,7 @@ def get_all_visitors():
         response: Client details and jwt upon successful login
     """
     try:
-        visitors = Visitor.query.filter(Visitor.approval_status == 0)
+        visitors = Visitor.query.all()
         visitors_response = []
         for visitor in visitors:
             visitors_response.append({
@@ -159,6 +159,43 @@ def get_unapproved_visitors():
             })
         logger.info(visitors_response)
         return {'message': visitors_response}
+    except Exception as e:
+        logger.error(traceback.format_exc())
+        return {'message': 'Could not process request due to error in server'}, 500
+
+#TODO: return face result in ascending order or handle on frontend
+@bp.route('/find_visitor', methods=['POST'])
+@cross_origin()
+@token_required
+def find_visitor():
+    """
+    This api logs in user based on loginID and password
+
+    Returns:
+        response: Client details and jwt upon successful login
+    """
+    try:
+        name = request.form['name']
+        remarks = request.form['remarks']
+        verifier_id = utils.get_verifier_id_from_jwt(request.headers)
+        visitor_file = request.files['visitor']
+        
+        _, visitor_path = utils.save_visitor_files(name, visitor_file, None)
+
+        find_result = utils.find_faces_deepface(visitor_path)
+        result = []
+        if find_result.shape[0] > 1:
+            for _, row in find_result.iterrows():
+                # print(str(row['identity']).split('/')[-1], row['VGG-Face_cosine'])
+                temp_res = {
+                    'visitor_name': str(row['identity']).split('/')[-1],
+                    'confidence': row['VGG-Face_cosine']
+                }
+                result.append(temp_res)
+        else:
+            result = 'No matching face found in db'
+        
+        return {'message': result}
     except Exception as e:
         logger.error(traceback.format_exc())
         return {'message': 'Could not process request due to error in server'}, 500
