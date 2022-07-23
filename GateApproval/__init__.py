@@ -51,9 +51,11 @@ def create_app(test_config=None):
         print('abc')
         return 'Hello'
     
-    @app.route('/images/<path:path>')
-    def send_image(path):
-        return send_from_directory(utils.get_config_value('FILE_PATH'), path)
+    @app.route('/images/<path:filename>')
+    def send_image(filename):
+        ROOT_DIR = os.path.abspath(os.curdir)
+        file_path = ROOT_DIR + '/static'
+        return send_from_directory(file_path, filename)
 
     @app.teardown_appcontext
     def shutdown_session(exception=None):

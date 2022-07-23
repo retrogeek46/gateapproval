@@ -43,7 +43,8 @@ def verify_password(password, hash):
     return bcrypt.checkpw(password.encode('utf-8'), hash)
 
 def save_visitor_files(name, visitor, document):
-    file_path = get_config_value("FILE_PATH")
+    ROOT_DIR = os.path.abspath(os.curdir)
+    file_path = ROOT_DIR + '/static'
     if not os.path.exists(file_path):
         os.makedirs(file_path)
     uuid_str = uuid.uuid4().hex
@@ -61,7 +62,9 @@ def compare_faces_deepface(document, visitor):
     return verify_result
 
 def find_faces_deepface(visitor):
-    find_result = DeepFace.find(img_path=visitor, db_path=get_config_value('FACE_DB_PATH'), enforce_detection=False)
+    ROOT_DIR = os.path.abspath(os.curdir)
+    face_db_path = ROOT_DIR + '/static/FACE_DB'
+    find_result = DeepFace.find(img_path=visitor, db_path=face_db_path, enforce_detection=False)
     return find_result
 
 def get_verifier_id_from_jwt(headers):

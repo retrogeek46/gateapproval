@@ -1,31 +1,27 @@
 # pull official base image
-FROM python:3.10-alpine
+FROM --platform=linux/amd64 python:3.10
 
 # set work directory
-WORKDIR /app
+WORKDIR /GateApproval
 
 # set environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 ENV DEBUG 0
 
-# install psycopg2
-RUN apk update \
-    && apk add --virtual build-essential gcc python3-dev musl-dev \
-    && apk add postgresql-dev \
-    && pip install psycopg2
+RUN apt-get update
+RUN apt-get install ffmpeg libsm6 libxext6  -y
 
 # copy project
 COPY . .
+RUN pip install --upgrade pip
+# RUN pip install https://storage.googleapis.com/tensorflow/mac/cpu/tensorflow-1.9.0-py3-none-any.whl
 RUN pip install -e .
 
 # install dependencies
-COPY ./requirements.txt .
+# COPY ./requirements.txt .
 # RUN pip install -r requirements.txt
 
-# add and run as non-root user
-RUN adduser -D myuser
-USER myuser
+EXPOSE 9060
 
-# run gunicorn
-CMD gunicorn GateApproval.wsgi:application --bind 0.0.0.0:$PORT
+RUN bash deploy.sh 9060
